@@ -4,10 +4,18 @@
   "description": "CLI client for socket.io-monitor",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel -d dist src",
+    "watch": "babel -w -d dist src"
   },
   "bin": {
     "socket.io-monitor": "bin/cli.js"
+  },
+  "babel": {
+    "presets": [
+      "es2015",
+      "react"
+    ]
   },
   "preferGlobal": true,
   "repository": {
@@ -21,8 +29,16 @@
   },
   "homepage": "https://github.com/byteclubfr/socket.io-monitor-cli#readme",
   "dependencies": {
+    "blessed": "^0.1.81",
     "inquirer": "^3.0.6",
+    "react": "^0.14.8",
+    "react-blessed": "^0.1.8",
     "socket.io-monitor": "^1.1.0",
     "yargs": "^7.0.2"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.24.1",
+    "babel-preset-es2015": "^6.24.0",
+    "babel-preset-react": "^6.24.1"
   }
 }
