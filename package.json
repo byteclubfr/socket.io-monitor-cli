@@ -1,0 +1,28 @@
+{
+  "name": "socket.io-monitor-cli",
+  "version": "1.0.0",
+  "description": "CLI client for socket.io-monitor",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "socket.io-monitor": "bin/cli.js"
+  },
+  "preferGlobal": true,
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/byteclubfr/socket.io-monitor-cli.git"
+  },
+  "author": "Nicolas Chambrier <naholyr@gmail.com> (http://naholyr.fr/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/byteclubfr/socket.io-monitor-cli/issues"
+  },
+  "homepage": "https://github.com/byteclubfr/socket.io-monitor-cli#readme",
+  "dependencies": {
+    "inquirer": "^3.0.6",
+    "socket.io-monitor": "^1.1.0",
+    "yargs": "^7.0.2"
+  }
+}
