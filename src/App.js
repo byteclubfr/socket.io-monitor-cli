@@ -13,6 +13,11 @@ const styles = {
         fg: 'blue'
       }
     }
+  },
+  selected: {
+    style: {
+      bg: 'yellow'
+    }
   }
 };
 
@@ -22,7 +27,10 @@ const styles = {
 export default class Dashboard extends Component {
   constructor (props) {
     super(props)
-    this.state = { logs: [] }
+    this.state = {
+      logs: [],
+      sockets: []
+    }
   }
   componentWillMount () {
     this.props.client
@@ -35,11 +43,60 @@ export default class Dashboard extends Component {
     .on('disconnect', ({ id }) => this.log('disconnect', id))
     .on('emit', ({ id, name, args }) => this.log('emit', id, name))
     .on('recv', ({ id, name, args }) => this.log('recv', id, name))
+    // Rooms
+    .on('init', ({ rooms }) => this.setState({ rooms }))
+    .on('join', ({ id, room }) => {
+      const found = this.state.rooms.some(({ name }) => name === room)
+      if (!found) {
+        this.setState({ rooms: rooms.concat({ name: room, sockets: [ id ] }) })
+      } else {
+        this.setState({ rooms: rooms.map(r => {
+          if (r.name !== room) {
+            return r
+          }
+          return Object.assign({}, r, { sockets: r.sockets.concat(id) })
+        }) })
+      }
+    })
+    .on('leave', ({ id, room }) => {
+      const found = this.state.rooms.find(({ name }) => name === room)
+      if (!found) {
+        return
+      }
+      const newSockets = found.sockets.filter(sid => sid !== id)
+      if (newSockets.length === 0) {
+        this.setState({ rooms: rooms.filter(r => r.name !== room) })
+      } else {
+        this.setState({ rooms: rooms.map(r => {
+          if (r.name !== room) {
+            return r
+          }
+          return Object.assign({}, r, { sockets: newSockets })
+        }) })
+      }
+    })
+    .on('leaveAll', ({ id }) => this.setState({ rooms: this.state.rooms.map(r => {
+      const newSockets = r.sockets.filter(sid => sid !== id)
+      if (newSocket.length === 0) {
+        return null
+      }
+      return Object.assign({}, r, { sockets: newSockets })
+    }).filter(r => r !== null) }))
+    // Sockets
+    .on('init', ({ sockets }) => this.setState({ sockets }))
+    .on('connect', ({ id }) => this.setState({ sockets: [id].concat(this.state.sockets) }))
+    .on('disconnect', ({ id }) => this.setState({ sockets: this.state.sockets.filter(sid => sid !== id) }))
   }
   log (content, ...args) {
     this.setState({
       logs: [ `${content}: ${JSON.stringify(args)}` ].concat(this.state.logs)
     })
+  }
+  getSelectedRooms () {
+    if (!this.state.selectedSocket) {
+      return []
+    }
+    return this.state.rooms.filter(r => r.sockets.includes(this.state.selectedSocket)).map(r => r.name)
   }
   render() {
     return (
@@ -47,9 +104,9 @@ export default class Dashboard extends Component {
         <Log content={ this.state.logs.join('\n') } />
         <Request />
         <Response />
-        <Jobs />
+        <Sockets ids={ this.state.sockets } selected={ this.state.selectedSocket } onSelect={ id => this.setState({ selectedSocket: id }) } />
         <Progress />
-        <Stats />
+        <Rooms socket={ this.state.selectedSocket } rooms={ this.getSelectedRooms() } />
       </element>
     );
   }
@@ -104,13 +161,25 @@ class Response extends Component {
 /**
  * Jobs component.
  */
-class Jobs extends Component {
+class Sockets extends Component {
+  renderSocket (id) {
+    return <text
+      clickable={ true }
+      onClick={ () => this.props.onSelect(id) }
+      key={ id }
+      class={ this.props.selected === id ? styles.selected : null }
+      >{ id }</text>
+  }
   render() {
-    return <box label="Jobs"
-                class={styles.bordered}
-                left="60%"
-                width="40%"
-                height="60%" />;
+    return (
+      <box label="Sockets"
+        class={styles.bordered}
+        left="60%"
+        width="40%"
+        height="60%">
+        { this.props.ids.map(id => this.renderSocket(id)) }
+      </box>
+    )
   }
 }
 
@@ -150,17 +219,19 @@ class Progress extends Component {
 /**
  * Stats component.
  */
-class Stats extends Component {
+class Rooms extends Component {
   render() {
+    const label = this.props.socket || 'Unselected'
+    const content = this.props.socket
+      ? this.props.rooms.map(r => <text key={ r }>{ r }</text>)
+      : <text>{ '\nSelect a socket to see its rooms' }</text>
     return (
-      <box label="Stats"
+      <box label={ label }
            class={styles.bordered}
            top="70%"
            left="60%"
            width="40%"
-           height="31%">
-        Some stats
-      </box>
+           height="31%">{ content }</box>
     );
   }
 }
