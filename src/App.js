@@ -2,6 +2,11 @@ import React, {Component} from 'react'
 
 const toLogLine = (type, info) => `${type} ${Object.values(info)}`
 
+type Room = {
+  name: string,
+  sockets: Array<Object>,
+}
+
 /**
  * Styles
  */
@@ -33,6 +38,9 @@ export default class Dashboard extends Component {
       logLines: [], // logs stringified on reception
       sockets: [],
       rooms: [],
+      selected: null, // current box on the bottom right
+      selectedSocket: null,
+      selectedRoom: null,
     }
   }
 
@@ -120,11 +128,31 @@ export default class Dashboard extends Component {
     })
   }
 
+  // socket → rooms
   getSelectedRooms () {
     if (!this.state.selectedSocket) {
       return []
     }
     return this.state.rooms.filter(r => r.sockets.includes(this.state.selectedSocket)).map(r => r.name)
+  }
+
+  getSelectedBox () {
+    switch (this.state.selected) {
+      case 'socket': return (
+        <SocketDetails
+          socket={ this.state.sockets.find(s => s.id === this.state.selectedSocket) }
+          rooms={ this.getSelectedRooms() }
+        />
+      )
+
+      case 'room': return (
+        <RoomDetails
+          room={ this.state.rooms.find(r => r.id === this.state.selectedRoom) }
+        />
+      )
+
+      default: return null
+    }
   }
 
   render() {
@@ -139,20 +167,25 @@ export default class Dashboard extends Component {
         />
         <Sockets
           sockets={ this.state.sockets }
-          onSelect={ index => this.setState({ selectedSocket: this.state.sockets[index].id }) }
+          onSelect={ index => this.setState({
+            selected: 'socket',
+            selectedSocket: this.state.sockets[index].id
+          }) }
         />
         <Rooms
           rooms={ this.state.rooms }
+          onSelect={ index => this.setState({
+            selected: 'room',
+            selectedRoom: this.state.rooms[index].id })
+          }
         />
-        <SocketDetails
-          socket={ this.state.sockets.find(s => s.id === this.state.selectedSocket) }
-          rooms={ this.getSelectedRooms() }
-        />
+        { this.getSelectedBox() }
       </element>
     )
   }
 
 }
+
 
 type MyListProps = {
   disabled: boolean,
@@ -224,6 +257,7 @@ const LogDetails = ({ content }: LogDetailsProps) => (
   </box>
 )
 
+
 type SocketsProps = {
   sockets: Array<Object>,
   onSelect: Function,
@@ -241,10 +275,12 @@ const Sockets = ({ sockets, onSelect }: SocketsProps) => (
   />
 )
 
+
 type RoomsProps = {
-  rooms: Array<Object>,
+  rooms: Array<Room>,
+  onSelect: Function,
 }
-const Rooms = ({ rooms }: RoomsProps) => (
+const Rooms = ({ rooms, onSelect }: RoomsProps) => (
   <MyList
     label={`Rooms (${rooms.length})`}
     top="35%"
@@ -253,12 +289,14 @@ const Rooms = ({ rooms }: RoomsProps) => (
     height="35%"
     prefix="asc"
     items={ rooms.map(r => `${r.name} (${r.sockets.length})`) }
+    onSelect={ onSelect }
   />
 )
 
+
 type SocketDetailsProps = {
   socket: Object,
-  rooms: Array<Object>,
+  rooms: Array<Room>,
 }
 const SocketDetails = ({ socket, rooms }: SocketDetailsProps) => {
   const label = socket
@@ -274,8 +312,23 @@ const SocketDetails = ({ socket, rooms }: SocketDetailsProps) => {
       width="40%"
       height="30%"
       prefix="asc"
-      disabled={ !socket }
       items={ socket ? rooms : [ 'Select a socket to see its rooms' ] }
     />
   )
 }
+
+
+type RoomDetailsProps = {
+  room: Room,
+}
+const RoomDetails = ({ room }: RoomDetailsProps) => (
+  <MyList
+    label={ `Rooms details: ${room.name}` }
+    top="70%"
+    left="60%"
+    width="40%"
+    height="30%"
+    prefix="asc"
+    items={ room.sockets }
+  />
+)
