@@ -4,6 +4,8 @@
 
 const { prompt } = require('inquirer')
 const run = require('../')
+const screen = require('../dist/screen').default
+
 
 const { port, host, password } = require('yargs')
   .usage('$0 [--port port] [--host addr] [--password pwd]')
@@ -38,6 +40,9 @@ run({ port, host, password })
   }
 })
 .catch(err => {
-  console.error(process.env.DEBUG ? err.stack : err.message)
-  process.exit(1)
+  screen.onceDestroyed(() => {
+    console.error(process.env.DEBUG ? err.stack : err.message)
+    process.exit(1)
+  })
+  screen.destroy()
 })
