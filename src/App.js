@@ -208,7 +208,7 @@ const LogDetails = ({ content }) => (
 
 const Sockets = ({ sockets, onSelect }) => (
   <MyList
-    label="Sockets"
+    label={`Sockets (${sockets.length})`}
     left="60%"
     width="40%"
     height="75%"
