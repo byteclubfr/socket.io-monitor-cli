@@ -1,4 +1,18 @@
 import React, {Component} from 'react'
+import jsome from 'jsome'
+
+jsome.colors = {
+  attr: [ 'bold', 'black' ],
+  quot: 'white',
+  punc: 'white',
+  brack: 'grey',
+  num: 'green',
+  bool: 'red',
+  str: 'cyan',
+  regex: 'blue',
+  undef: 'grey',
+  null: 'grey',
+}
 
 const toLogLine = (type, info) => `${type} ${Object.values(info)}`
 
@@ -253,7 +267,7 @@ const LogDetails = ({ content }: LogDetailsProps) => (
     height="50%"
     mouse={ true }
     scrollable={ true }>
-    { JSON.stringify(content, null, 2) }
+    { content !== undefined ? jsome.getColoredString(content) : '' }
   </box>
 )
 
