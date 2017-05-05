@@ -6,44 +6,54 @@ import React, {Component} from 'react'
 const styles = {
   bordered: {
     border: {
-      type: 'line'
+      type: 'line',
     },
     style: {
       border: {
-        fg: 'blue'
+        fg: 'blue',
       }
     }
   },
-  selected: {
-    style: {
-      bg: 'yellow'
-    }
-  }
+  list: {
+    item: { fg: 'black' },
+    selected: { fg: 'white', bg: 'black' },
+  },
 };
 
 /**
  * Top level component.
  */
 export default class Dashboard extends Component {
+
   constructor (props) {
     super(props)
     this.state = {
       logs: [],
-      sockets: []
+      sockets: [],
     }
   }
+
   componentWillMount () {
+    this.watchLogs()
+    this.watchRooms()
+    this.watchSockets()
+  }
+
+  watchLogs () {
     this.props.client
-    .on('init', ({ rooms, sockets }) => this.log('init', { sockets, rooms }))
-    .on('broadcast', ({ name, args, rooms, flags }) => this.log('broadcast', name, args, rooms, flags))
-    .on('join', ({ id, room }) => this.log('join', id, room))
-    .on('leave', ({ id, room }) => this.log('leave', id, room))
-    .on('leaveAll', ({ id }) => this.log('leaveAll', id))
-    .on('connect', ({ id }) => this.log('connect', id))
-    .on('disconnect', ({ id }) => this.log('disconnect', id))
-    .on('emit', ({ id, name, args }) => this.log('emit', id, name))
-    .on('recv', ({ id, name, args }) => this.log('recv', id, name))
-    // Rooms
+    .on('init', ({ rooms, sockets }) => this.addLog('init', { sockets, rooms }))
+    .on('broadcast', ({ name, args, rooms, flags }) => this.addLog('broadcast', name, args, rooms, flags))
+    .on('join', ({ id, room }) => this.addLog('join', id, room))
+    .on('leave', ({ id, room }) => this.addLog('leave', id, room))
+    .on('leaveAll', ({ id }) => this.addLog('leaveAll', id))
+    .on('connect', ({ id }) => this.addLog('connect', id))
+    .on('disconnect', ({ id }) => this.addLog('disconnect', id))
+    .on('emit', ({ id, name, args }) => this.addLog('emit', id, name))
+    .on('recv', ({ id, name, args }) => this.addLog('recv', id, name))
+  }
+
+  watchRooms () {
+    this.props.client
     .on('init', ({ rooms }) => this.setState({ rooms }))
     .on('join', ({ id, room }) => {
       const found = this.state.rooms.some(({ name }) => name === room)
@@ -82,156 +92,150 @@ export default class Dashboard extends Component {
       }
       return Object.assign({}, r, { sockets: newSockets })
     }).filter(r => r !== null) }))
-    // Sockets
-    .on('init', ({ sockets }) => this.setState({ sockets }))
-    .on('connect', ({ id }) => this.setState({ sockets: [id].concat(this.state.sockets) }))
-    .on('disconnect', ({ id }) => this.setState({ sockets: this.state.sockets.filter(sid => sid !== id) }))
   }
-  log (content, ...args) {
+
+  watchSockets () {
+    this.props.client
+    .on('init', ({ sockets }) => {
+      this.setState({ sockets: sockets.map(id => ({ id, label: id })) })
+    })
+    .on('connect', ({ id }) => {
+      this.setState({ sockets: [{ id, label: id }].concat(this.state.sockets) })
+    })
+    .on('disconnect', ({ id }) => {
+      this.setState({ sockets: this.state.sockets.filter(s => s.id !== id) })
+    })
+    .on('string', ({ id, string }) => {
+      this.setState({ sockets: this.state.sockets.map(s => s.id === id ? { id, label: `${string} (${id})` } : s) })
+    })
+  }
+
+  addLog (content, ...args) {
     this.setState({
       logs: [ `${content}: ${JSON.stringify(args)}` ].concat(this.state.logs)
     })
   }
+
   getSelectedRooms () {
     if (!this.state.selectedSocket) {
       return []
     }
     return this.state.rooms.filter(r => r.sockets.includes(this.state.selectedSocket)).map(r => r.name)
   }
+
   render() {
     return (
       <element>
-        <Log content={ this.state.logs.join('\n') } />
-        <Request />
-        <Response />
-        <Sockets ids={ this.state.sockets } selected={ this.state.selectedSocket } onSelect={ id => this.setState({ selectedSocket: id }) } />
-        <Progress />
-        <Rooms socket={ this.state.selectedSocket } rooms={ this.getSelectedRooms() } />
+        <Logs
+          lines={ this.state.logs }
+          onSelect={ index => this.setState({ selectedLog: this.state.logs[index] }) }
+        />
+        <LogDetails
+          content={ this.state.selectedLog }
+        />
+        <Sockets
+          sockets={ this.state.sockets }
+          onSelect={ index => this.setState({ selectedSocket: this.state.sockets[index].id }) }
+        />
+        <SocketDetails
+          socket={ this.state.sockets.find(s => s.id === this.state.selectedSocket) }
+          rooms={ this.getSelectedRooms() }
+        />
       </element>
-    );
-  }
-}
-
-/**
- * Log component.
- */
-class Log extends Component {
-  render() {
-    return (
-      <box label="Log"
-           class={styles.bordered}
-           width="60%"
-           height="70%"
-           draggable={true}>
-        {this.props.content}
-      </box>
-    );
-  }
-}
-
-/**
- * Request component.
- */
-class Request extends Component {
-  render() {
-    return (
-      <box label="Request"
-           class={styles.bordered}
-           top="70%"
-           width="30%">
-        {0}
-      </box>
-    );
-  }
-}
-
-/**
- * Response component.
- */
-class Response extends Component {
-  render() {
-    return <box label="Response"
-                class={styles.bordered}
-                top="70%"
-                left="30%"
-                width="30%" />;
-  }
-}
-
-/**
- * Jobs component.
- */
-class Sockets extends Component {
-  renderSocket (id) {
-    return <text
-      clickable={ true }
-      onClick={ () => this.props.onSelect(id) }
-      key={ id }
-      class={ this.props.selected === id ? styles.selected : null }
-      >{ id }</text>
-  }
-  render() {
-    return (
-      <box label="Sockets"
-        class={styles.bordered}
-        left="60%"
-        width="40%"
-        height="60%">
-        { this.props.ids.map(id => this.renderSocket(id)) }
-      </box>
     )
   }
+
 }
 
-/**
- * Progress component.
- */
-class Progress extends Component {
-  constructor(props) {
-    super(props);
 
-    this.state = {progress: 0, color: 'blue'};
+const MyList = props => {
+  const disabled = props.disabled
 
-    const interval = setInterval(() => {
-      if (this.state.progress >= 100)
-        return clearInterval(interval);
+  const listProps = Object.assign({}, props)
+  delete listProps.disabled
+  delete listProps.prefix
+  delete listProps.onSelect
 
-      this.setState({progress: this.state.progress + 1});
-    }, 50);
+  if (props.prefix) {
+    listProps.items = props.items.map((s, i) => {
+      const prefix = props.prefix === 'desc'
+        ? props.items.length - i
+        : i + 1
+      return `${prefix}. ${s}`
+    })
   }
 
-  render() {
-    const {progress} = this.state,
-          label = `Progress - ${progress}%`;
-
-    return <progressbar label={label}
-                        onComplete={() => this.setState({color: 'green'})}
-                        class={styles.bordered}
-                        filled={progress}
-                        top="60%"
-                        left="60%"
-                        width="40%"
-                        height="10%"
-                        style={{bar: {bg: this.state.color}}} />;
+  // Reverse dumb arguments in onSelect
+  if (props.onSelect) {
+    listProps.onSelect = (box, index) => props.onSelect(index, box)
   }
+
+  // UI
+  listProps['class'] = styles.bordered
+  if (!disabled) {
+    Object.assign(listProps, { style: styles.list, keys: true, mouse: true })
+  }
+
+  return <list { ...listProps } />
 }
 
-/**
- * Stats component.
- */
-class Rooms extends Component {
-  render() {
-    const label = this.props.socket || 'Unselected'
-    const content = this.props.socket
-      ? this.props.rooms.map(r => <text key={ r }>{ r }</text>)
-      : <text>{ '\nSelect a socket to see its rooms' }</text>
-    return (
-      <box label={ label }
-           class={styles.bordered}
-           top="70%"
-           left="60%"
-           width="40%"
-           height="31%">{ content }</box>
-    );
-  }
+
+const Logs = ({ lines, onSelect }) => (
+  <MyList
+    label="Log"
+    width="60%"
+    height="50%"
+    prefix="desc"
+    items={ lines }
+    onSelect={ onSelect }
+  />
+)
+
+
+const LogDetails = ({ content }) => (
+  <box
+    class={ styles.bordered }
+    label="Log details"
+    width="60%"
+    top="50%"
+    height="50%"
+    mouse={ true }
+    scrollable={ true }>
+    { content }
+  </box>
+)
+
+
+const Sockets = ({ sockets, onSelect }) => (
+  <MyList
+    label="Sockets"
+    left="60%"
+    width="40%"
+    height="75%"
+    focused={ true }
+    prefix="asc"
+    items={ sockets.map(s => s.label) }
+    onSelect={ onSelect }
+  />
+)
+
+
+const SocketDetails = ({ socket, rooms }) => {
+  const label = socket
+    ? socket.label === socket.id
+      ? socket.id
+      : `${socket.label} (${socket.id})`
+    : 'Unselected'
+  return (
+    <MyList
+      label={ `Rooms: ${label}` }
+      top="75%"
+      left="60%"
+      width="40%"
+      height="25%"
+      prefix="asc"
+      disabled={ !socket }
+      items={ socket ? rooms : [ 'Select a socket to see its rooms' ] }
+    />
+  )
 }
