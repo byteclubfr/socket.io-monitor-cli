@@ -8,17 +8,11 @@ const styles = {
     border: {
       type: 'line',
     },
-    style: {
-      border: {
-        fg: 'blue',
-      }
-    }
   },
   list: {
-    item: { fg: 'black' },
-    selected: { fg: 'white', bg: 'black' },
+    selected: { inverse: true },
   },
-};
+}
 
 /**
  * Top level component.
