@@ -56,9 +56,9 @@ export default class Dashboard extends Component {
     .on('join', ({ id, room }) => {
       const found = this.state.rooms.some(({ name }) => name === room)
       if (!found) {
-        this.setState({ rooms: rooms.concat({ name: room, sockets: [ id ] }) })
+        this.setState({ rooms: this.state.rooms.concat({ name: room, sockets: [ id ] }) })
       } else {
-        this.setState({ rooms: rooms.map(r => {
+        this.setState({ rooms: this.state.rooms.map(r => {
           if (r.name !== room) {
             return r
           }
@@ -73,9 +73,9 @@ export default class Dashboard extends Component {
       }
       const newSockets = found.sockets.filter(sid => sid !== id)
       if (newSockets.length === 0) {
-        this.setState({ rooms: rooms.filter(r => r.name !== room) })
+        this.setState({ rooms: this.rooms.filter(r => r.name !== room) })
       } else {
-        this.setState({ rooms: rooms.map(r => {
+        this.setState({ rooms: this.rooms.map(r => {
           if (r.name !== room) {
             return r
           }
@@ -85,7 +85,7 @@ export default class Dashboard extends Component {
     })
     .on('leaveAll', ({ id }) => this.setState({ rooms: this.state.rooms.map(r => {
       const newSockets = r.sockets.filter(sid => sid !== id)
-      if (newSocket.length === 0) {
+      if (newSockets.length === 0) {
         return null
       }
       return Object.assign({}, r, { sockets: newSockets })
