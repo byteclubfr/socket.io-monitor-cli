@@ -27,6 +27,7 @@ export default class Dashboard extends Component {
       logs: [], // raw js logs
       logLines: [], // logs stringified on reception
       sockets: [],
+      rooms: [],
     }
   }
 
@@ -135,6 +136,9 @@ export default class Dashboard extends Component {
           sockets={ this.state.sockets }
           onSelect={ index => this.setState({ selectedSocket: this.state.sockets[index].id }) }
         />
+        <Rooms
+          rooms={ this.state.rooms }
+        />
         <SocketDetails
           socket={ this.state.sockets.find(s => s.id === this.state.selectedSocket) }
           rooms={ this.getSelectedRooms() }
@@ -209,11 +213,23 @@ const Sockets = ({ sockets, onSelect }) => (
     label={`Sockets (${sockets.length})`}
     left="60%"
     width="40%"
-    height="75%"
+    height="35%"
     focused={ true }
     prefix="asc"
     items={ sockets.map(s => s.label) }
     onSelect={ onSelect }
+  />
+)
+
+const Rooms = ({ rooms }) => (
+  <MyList
+    label={`Rooms (${rooms.length})`}
+    top="35%"
+    left="60%"
+    width="40%"
+    height="35%"
+    prefix="asc"
+    items={ rooms.map(r => `${r.name} (${r.sockets.length})`) }
   />
 )
 
@@ -226,11 +242,11 @@ const SocketDetails = ({ socket, rooms }) => {
     : 'Unselected'
   return (
     <MyList
-      label={ `Rooms: ${label}` }
-      top="75%"
+      label={ `Socket details: ${label}` }
+      top="70%"
       left="60%"
       width="40%"
-      height="25%"
+      height="30%"
       prefix="asc"
       disabled={ !socket }
       items={ socket ? rooms : [ 'Select a socket to see its rooms' ] }
