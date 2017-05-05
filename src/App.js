@@ -20,6 +20,11 @@ const styles = {
  * Top level component.
  */
 export default class Dashboard extends Component {
+  props: {
+    client: {
+      on: Function,
+    }
+  }
 
   constructor (props) {
     super(props)
@@ -46,8 +51,8 @@ export default class Dashboard extends Component {
     .on('leaveAll', ({ id }) => this.addLog('leaveAll', { id }))
     .on('connect', ({ id }) => this.addLog('connect', { id }))
     .on('disconnect', ({ id }) => this.addLog('disconnect', { id }))
-    .on('emit', ({ id, name, args }) => this.addLog('emit', { id, name }))
-    .on('recv', ({ id, name, args }) => this.addLog('recv', { id, name }))
+    .on('emit', ({ id, name }) => this.addLog('emit', { id, name }))
+    .on('recv', ({ id, name }) => this.addLog('recv', { id, name }))
   }
 
   watchRooms () {
@@ -149,8 +154,13 @@ export default class Dashboard extends Component {
 
 }
 
-
-const MyList = props => {
+type MyListProps = {
+  disabled: boolean,
+  items: Array<any>,
+  prefix: string,
+  onSelect: Function,
+}
+const MyList = (props: MyListProps) => {
   const disabled = props.disabled
 
   const listProps = Object.assign({}, props)
@@ -182,7 +192,11 @@ const MyList = props => {
 }
 
 
-const Logs = ({ lines, onSelect }) => (
+type LogsProps = {
+  lines: Array<string>,
+  onSelect: Function,
+}
+const Logs = ({ lines, onSelect }: LogsProps) => (
   <MyList
     label="Log"
     width="60%"
@@ -194,7 +208,10 @@ const Logs = ({ lines, onSelect }) => (
 )
 
 
-const LogDetails = ({ content }) => (
+type LogDetailsProps = {
+  content: Object,
+}
+const LogDetails = ({ content }: LogDetailsProps) => (
   <box
     class={ styles.bordered }
     label="Log details"
@@ -207,8 +224,11 @@ const LogDetails = ({ content }) => (
   </box>
 )
 
-
-const Sockets = ({ sockets, onSelect }) => (
+type SocketsProps = {
+  sockets: Array<Object>,
+  onSelect: Function,
+}
+const Sockets = ({ sockets, onSelect }: SocketsProps) => (
   <MyList
     label={`Sockets (${sockets.length})`}
     left="60%"
@@ -221,7 +241,10 @@ const Sockets = ({ sockets, onSelect }) => (
   />
 )
 
-const Rooms = ({ rooms }) => (
+type RoomsProps = {
+  rooms: Array<Object>,
+}
+const Rooms = ({ rooms }: RoomsProps) => (
   <MyList
     label={`Rooms (${rooms.length})`}
     top="35%"
@@ -233,8 +256,11 @@ const Rooms = ({ rooms }) => (
   />
 )
 
-
-const SocketDetails = ({ socket, rooms }) => {
+type SocketDetailsProps = {
+  socket: Object,
+  rooms: Array<Object>,
+}
+const SocketDetails = ({ socket, rooms }: SocketDetailsProps) => {
   const label = socket
     ? socket.label === socket.id
       ? socket.id
