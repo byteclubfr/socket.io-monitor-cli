@@ -1,5 +1,7 @@
 import React, {Component} from 'react'
 
+const toLogLine = (type, info) => `${type} ${Object.values(info)}`
+
 /**
  * Styles
  */
@@ -22,7 +24,8 @@ export default class Dashboard extends Component {
   constructor (props) {
     super(props)
     this.state = {
-      logs: [],
+      logs: [], // raw js logs
+      logLines: [], // logs stringified on reception
       sockets: [],
     }
   }
@@ -36,14 +39,14 @@ export default class Dashboard extends Component {
   watchLogs () {
     this.props.client
     .on('init', ({ rooms, sockets }) => this.addLog('init', { sockets, rooms }))
-    .on('broadcast', ({ name, args, rooms, flags }) => this.addLog('broadcast', name, args, rooms, flags))
-    .on('join', ({ id, room }) => this.addLog('join', id, room))
-    .on('leave', ({ id, room }) => this.addLog('leave', id, room))
-    .on('leaveAll', ({ id }) => this.addLog('leaveAll', id))
-    .on('connect', ({ id }) => this.addLog('connect', id))
-    .on('disconnect', ({ id }) => this.addLog('disconnect', id))
-    .on('emit', ({ id, name, args }) => this.addLog('emit', id, name))
-    .on('recv', ({ id, name, args }) => this.addLog('recv', id, name))
+    .on('broadcast', ({ name, args, rooms, flags }) => this.addLog('broadcast', { name, args, rooms, flags }))
+    .on('join', ({ id, room }) => this.addLog('join', { id, room }))
+    .on('leave', ({ id, room }) => this.addLog('leave', { id, room }))
+    .on('leaveAll', ({ id }) => this.addLog('leaveAll', { id }))
+    .on('connect', ({ id }) => this.addLog('connect', { id }))
+    .on('disconnect', ({ id }) => this.addLog('disconnect', { id }))
+    .on('emit', ({ id, name, args }) => this.addLog('emit', { id, name }))
+    .on('recv', ({ id, name, args }) => this.addLog('recv', { id, name }))
   }
 
   watchRooms () {
@@ -104,9 +107,10 @@ export default class Dashboard extends Component {
     })
   }
 
-  addLog (content, ...args) {
+  addLog (type, info) {
     this.setState({
-      logs: [ `${content}: ${JSON.stringify(args)}` ].concat(this.state.logs)
+      logLines: [ toLogLine(type, info) ].concat(this.state.logLines),
+      logs: [ Object.assign({ type }, info) ].concat(this.state.logs)
     })
   }
 
@@ -121,7 +125,7 @@ export default class Dashboard extends Component {
     return (
       <element>
         <Logs
-          lines={ this.state.logs }
+          lines={ this.state.logLines }
           onSelect={ index => this.setState({ selectedLog: this.state.logs[index] }) }
         />
         <LogDetails
@@ -195,7 +199,7 @@ const LogDetails = ({ content }) => (
     height="50%"
     mouse={ true }
     scrollable={ true }>
-    { content }
+    { JSON.stringify(content, null, 2) }
   </box>
 )
 
