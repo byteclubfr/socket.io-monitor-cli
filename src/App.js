@@ -90,8 +90,12 @@ export default class Dashboard extends Component {
       .on('leaveAll', ({ id }) => this.addLog('leaveAll', { id }))
       .on('connect', ({ id }) => this.addLog('connect', { id }))
       .on('disconnect', ({ id }) => this.addLog('disconnect', { id }))
-      .on('emit', ({ id, name }) => this.addLog('emit', { id, name }))
-      .on('recv', ({ id, name }) => this.addLog('recv', { id, name }))
+      .on('emit', ({ id, name, args }) =>
+        this.addLog('emit', { id, name, args }),
+      )
+      .on('recv', ({ id, name, args }) =>
+        this.addLog('recv', { id, name, args }),
+      )
   }
 
   watchRooms() {
