@@ -35,6 +35,7 @@
     "jsome": "^2.3.26",
     "react": "^0.14.8",
     "react-blessed": "^0.1.8",
+    "reselect": "^3.0.0",
     "socket.io-monitor": "^1.1.0",
     "yargs": "^7.0.2"
   },

@@ -1,8 +1,10 @@
-import React, {Component} from 'react'
+import React, { Component } from 'react'
 import jsome from 'jsome'
 
+import { getFilteredLogs, getFilteredLogLines } from './selectors'
+
 jsome.colors = {
-  attr: [ 'bold', 'black' ],
+  attr: ['bold', 'black'],
   quot: 'white',
   punc: 'white',
   brack: 'grey',
@@ -42,14 +44,25 @@ export default class Dashboard extends Component {
   props: {
     client: {
       on: Function,
-    }
+    },
   }
 
-  constructor (props) {
+  constructor(props) {
     super(props)
     this.state = {
       logs: [], // raw js logs
       logLines: [], // logs stringified on reception
+      logToggles: {
+        init: true,
+        broadcast: true,
+        join: true,
+        leave: true,
+        leaveAll: true,
+        connect: true,
+        disconnect: true,
+        emit: true,
+        recv: true,
+      },
       sockets: [],
       rooms: [],
       selected: null, // current box on the bottom right
@@ -58,148 +71,195 @@ export default class Dashboard extends Component {
     }
   }
 
-  componentWillMount () {
+  componentWillMount() {
     this.watchLogs()
     this.watchRooms()
     this.watchSockets()
   }
 
-  watchLogs () {
+  watchLogs() {
     this.props.client
-    .on('init', ({ rooms, sockets }) => this.addLog('init', { sockets, rooms }))
-    .on('broadcast', ({ name, args, rooms, flags }) => this.addLog('broadcast', { name, args, rooms, flags }))
-    .on('join', ({ id, room }) => this.addLog('join', { id, room }))
-    .on('leave', ({ id, room }) => this.addLog('leave', { id, room }))
-    .on('leaveAll', ({ id }) => this.addLog('leaveAll', { id }))
-    .on('connect', ({ id }) => this.addLog('connect', { id }))
-    .on('disconnect', ({ id }) => this.addLog('disconnect', { id }))
-    .on('emit', ({ id, name }) => this.addLog('emit', { id, name }))
-    .on('recv', ({ id, name }) => this.addLog('recv', { id, name }))
+      .on('init', ({ rooms, sockets }) =>
+        this.addLog('init', { sockets, rooms }),
+      )
+      .on('broadcast', ({ name, args, rooms, flags }) =>
+        this.addLog('broadcast', { name, args, rooms, flags }),
+      )
+      .on('join', ({ id, room }) => this.addLog('join', { id, room }))
+      .on('leave', ({ id, room }) => this.addLog('leave', { id, room }))
+      .on('leaveAll', ({ id }) => this.addLog('leaveAll', { id }))
+      .on('connect', ({ id }) => this.addLog('connect', { id }))
+      .on('disconnect', ({ id }) => this.addLog('disconnect', { id }))
+      .on('emit', ({ id, name }) => this.addLog('emit', { id, name }))
+      .on('recv', ({ id, name }) => this.addLog('recv', { id, name }))
   }
 
-  watchRooms () {
+  watchRooms() {
     this.props.client
-    .on('init', ({ rooms }) => this.setState({ rooms }))
-    .on('join', ({ id, room }) => {
-      const found = this.state.rooms.some(({ name }) => name === room)
-      if (!found) {
-        this.setState({ rooms: this.state.rooms.concat({ name: room, sockets: [ id ] }) })
-      } else {
-        this.setState({ rooms: this.state.rooms.map(r => {
-          if (r.name !== room) {
-            return r
-          }
-          return Object.assign({}, r, { sockets: r.sockets.concat(id) })
-        }) })
-      }
-    })
-    .on('leave', ({ id, room }) => {
-      const found = this.state.rooms.find(({ name }) => name === room)
-      if (!found) {
-        return
-      }
-      const newSockets = found.sockets.filter(sid => sid !== id)
-      if (newSockets.length === 0) {
-        this.setState({ rooms: this.rooms.filter(r => r.name !== room) })
-      } else {
-        this.setState({ rooms: this.rooms.map(r => {
-          if (r.name !== room) {
-            return r
-          }
-          return Object.assign({}, r, { sockets: newSockets })
-        }) })
-      }
-    })
-    .on('leaveAll', ({ id }) => this.setState({ rooms: this.state.rooms.map(r => {
-      const newSockets = r.sockets.filter(sid => sid !== id)
-      if (newSockets.length === 0) {
-        return null
-      }
-      return Object.assign({}, r, { sockets: newSockets })
-    }).filter(r => r !== null) }))
+      .on('init', ({ rooms }) => this.setState({ rooms }))
+      .on('join', ({ id, room }) => {
+        const found = this.state.rooms.some(({ name }) => name === room)
+        if (!found) {
+          this.setState({
+            rooms: this.state.rooms.concat({ name: room, sockets: [id] }),
+          })
+        } else {
+          this.setState({
+            rooms: this.state.rooms.map(r => {
+              if (r.name !== room) {
+                return r
+              }
+              return Object.assign({}, r, { sockets: r.sockets.concat(id) })
+            }),
+          })
+        }
+      })
+      .on('leave', ({ id, room }) => {
+        const found = this.state.rooms.find(({ name }) => name === room)
+        if (!found) {
+          return
+        }
+        const newSockets = found.sockets.filter(sid => sid !== id)
+        if (newSockets.length === 0) {
+          this.setState({ rooms: this.rooms.filter(r => r.name !== room) })
+        } else {
+          this.setState({
+            rooms: this.rooms.map(r => {
+              if (r.name !== room) {
+                return r
+              }
+              return Object.assign({}, r, { sockets: newSockets })
+            }),
+          })
+        }
+      })
+      .on('leaveAll', ({ id }) =>
+        this.setState({
+          rooms: this.state.rooms
+            .map(r => {
+              const newSockets = r.sockets.filter(sid => sid !== id)
+              if (newSockets.length === 0) {
+                return null
+              }
+              return Object.assign({}, r, { sockets: newSockets })
+            })
+            .filter(r => r !== null),
+        }),
+      )
   }
 
-  watchSockets () {
+  watchSockets() {
     this.props.client
-    .on('init', ({ sockets }) => {
-      this.setState({ sockets: sockets.map(id => ({ id, label: id })) })
-    })
-    .on('connect', ({ id }) => {
-      this.setState({ sockets: [{ id, label: id }].concat(this.state.sockets) })
-    })
-    .on('disconnect', ({ id }) => {
-      this.setState({ sockets: this.state.sockets.filter(s => s.id !== id) })
-    })
-    .on('string', ({ id, string }) => {
-      this.setState({ sockets: this.state.sockets.map(s => s.id === id ? { id, label: `${string} (${id})` } : s) })
-    })
+      .on('init', ({ sockets }) => {
+        this.setState({ sockets: sockets.map(id => ({ id, label: id })) })
+      })
+      .on('connect', ({ id }) => {
+        this.setState({
+          sockets: [{ id, label: id }].concat(this.state.sockets),
+        })
+      })
+      .on('disconnect', ({ id }) => {
+        this.setState({ sockets: this.state.sockets.filter(s => s.id !== id) })
+      })
+      .on('string', ({ id, string }) => {
+        this.setState({
+          sockets: this.state.sockets.map(
+            s => (s.id === id ? { id, label: `${string} (${id})` } : s),
+          ),
+        })
+      })
   }
 
-  addLog (type, info) {
+  addLog(type, info) {
     this.setState({
-      logLines: [ toLogLine(type, info) ].concat(this.state.logLines),
-      logs: [ Object.assign({ type }, info) ].concat(this.state.logs)
+      logLines: [toLogLine(type, info)].concat(this.state.logLines),
+      logs: [Object.assign({ type }, info)].concat(this.state.logs),
     })
   }
 
   // socket → rooms
-  getSelectedRooms () {
+  getSelectedRooms() {
     if (!this.state.selectedSocket) {
       return []
     }
-    return this.state.rooms.filter(r => r.sockets.includes(this.state.selectedSocket)).map(r => r.name)
+    return this.state.rooms
+      .filter(r => r.sockets.includes(this.state.selectedSocket))
+      .map(r => r.name)
   }
 
-  getSelectedBox () {
+  getSelectedBox() {
     switch (this.state.selected) {
-      case 'socket': return (
-        <SocketDetails
-          socket={ this.state.sockets.find(s => s.id === this.state.selectedSocket) }
-          rooms={ this.getSelectedRooms() }
-        />
-      )
+      case 'socket':
+        return (
+          <SocketDetails
+            socket={this.state.sockets.find(
+              s => s.id === this.state.selectedSocket,
+            )}
+            rooms={this.getSelectedRooms()}
+          />
+        )
 
-      case 'room': return (
-        <RoomDetails
-          room={ this.state.rooms.find(r => r.id === this.state.selectedRoom) }
-        />
-      )
+      case 'room':
+        return (
+          <RoomDetails
+            room={this.state.rooms.find(r => r.id === this.state.selectedRoom)}
+          />
+        )
 
-      default: return null
+      default:
+        return null
     }
+  }
+
+  getToggles() {
+    return Object.entries(this.state.logToggles).map(
+      ([k, v]) => `${v ? '✔' : ' '} ${k}`,
+    )
   }
 
   render() {
     return (
       <element>
+        <LogToggles
+          toggles={this.getToggles()}
+          onSelect={index => {
+            const toggle = Object.keys(this.state.logToggles)[index]
+            this.setState(state => ({
+              logToggles: Object.assign({}, state.logToggles, {
+                [toggle]: !state.logToggles[toggle],
+              }),
+            }))
+          }}
+        />
         <Logs
-          lines={ this.state.logLines }
-          onSelect={ index => this.setState({ selectedLog: this.state.logs[index] }) }
+          lines={getFilteredLogLines(this.state)}
+          onSelect={index =>
+            this.setState(state => ({
+              selectedLog: getFilteredLogs(state)[index],
+            }))}
         />
-        <LogDetails
-          content={ this.state.selectedLog }
-        />
+        <LogDetails content={this.state.selectedLog} />
         <Sockets
-          sockets={ this.state.sockets }
-          onSelect={ index => this.setState({
-            selected: 'socket',
-            selectedSocket: this.state.sockets[index].id
-          }) }
+          sockets={this.state.sockets}
+          onSelect={index =>
+            this.setState({
+              selected: 'socket',
+              selectedSocket: this.state.sockets[index].id,
+            })}
         />
         <Rooms
-          rooms={ this.state.rooms }
-          onSelect={ index => this.setState({
-            selected: 'room',
-            selectedRoom: this.state.rooms[index].id })
-          }
+          rooms={this.state.rooms}
+          onSelect={index =>
+            this.setState({
+              selected: 'room',
+              selectedRoom: this.state.rooms[index].id,
+            })}
         />
-        { this.getSelectedBox() }
+        {this.getSelectedBox()}
       </element>
     )
   }
-
 }
-
 
 type MyListProps = {
   disabled: boolean,
@@ -217,9 +277,7 @@ const MyList = (props: MyListProps) => {
 
   if (props.prefix) {
     listProps.items = props.items.map((s, i) => {
-      const prefix = props.prefix === 'desc'
-        ? props.items.length - i
-        : i + 1
+      const prefix = props.prefix === 'desc' ? props.items.length - i : i + 1
       return `${prefix}. ${s}`
     })
   }
@@ -235,9 +293,8 @@ const MyList = (props: MyListProps) => {
     Object.assign(listProps, { style: styles.list, keys: true, mouse: true })
   }
 
-  return <list { ...listProps } />
+  return <list {...listProps} />
 }
-
 
 type LogsProps = {
   lines: Array<string>,
@@ -246,31 +303,44 @@ type LogsProps = {
 const Logs = ({ lines, onSelect }: LogsProps) => (
   <MyList
     label="Log"
-    width="60%"
+    width="50%"
     height="50%"
+    left="10%"
     prefix="desc"
-    items={ lines }
-    onSelect={ onSelect }
+    items={lines}
+    onSelect={onSelect}
   />
 )
 
+type LogTogglesProps = {
+  toggles: Array<string>,
+  onSelect: Function,
+}
+const LogToggles = ({ toggles, onSelect }: LogTogglesProps) => (
+  <MyList
+    label="Log Toggles"
+    width="10%"
+    height="50%"
+    items={toggles}
+    onSelect={onSelect}
+  />
+)
 
 type LogDetailsProps = {
   content: Object,
 }
 const LogDetails = ({ content }: LogDetailsProps) => (
   <box
-    class={ styles.bordered }
+    class={styles.bordered}
     label="Log details"
     width="60%"
     top="50%"
     height="50%"
-    mouse={ true }
-    scrollable={ true }>
-    { content !== undefined ? jsome.getColoredString(content) : '' }
+    mouse={true}
+    scrollable={true}>
+    {content !== undefined ? jsome.getColoredString(content) : ''}
   </box>
 )
-
 
 type SocketsProps = {
   sockets: Array<Object>,
@@ -282,13 +352,12 @@ const Sockets = ({ sockets, onSelect }: SocketsProps) => (
     left="60%"
     width="40%"
     height="35%"
-    focused={ true }
+    focused={true}
     prefix="asc"
-    items={ sockets.map(s => s.label) }
-    onSelect={ onSelect }
+    items={sockets.map(s => s.label)}
+    onSelect={onSelect}
   />
 )
-
 
 type RoomsProps = {
   rooms: Array<Room>,
@@ -302,11 +371,10 @@ const Rooms = ({ rooms, onSelect }: RoomsProps) => (
     width="40%"
     height="35%"
     prefix="asc"
-    items={ rooms.map(r => `${r.name} (${r.sockets.length})`) }
-    onSelect={ onSelect }
+    items={rooms.map(r => `${r.name} (${r.sockets.length})`)}
+    onSelect={onSelect}
   />
 )
-
 
 type SocketDetailsProps = {
   socket: Object,
@@ -314,35 +382,32 @@ type SocketDetailsProps = {
 }
 const SocketDetails = ({ socket, rooms }: SocketDetailsProps) => {
   const label = socket
-    ? socket.label === socket.id
-      ? socket.id
-      : `${socket.label} (${socket.id})`
+    ? socket.label === socket.id ? socket.id : `${socket.label} (${socket.id})`
     : 'Unselected'
   return (
     <MyList
-      label={ `Socket details: ${label}` }
+      label={`Socket details: ${label}`}
       top="70%"
       left="60%"
       width="40%"
       height="30%"
       prefix="asc"
-      items={ socket ? rooms : [ 'Select a socket to see its rooms' ] }
+      items={socket ? rooms : ['Select a socket to see its rooms']}
     />
   )
 }
-
 
 type RoomDetailsProps = {
   room: Room,
 }
 const RoomDetails = ({ room }: RoomDetailsProps) => (
   <MyList
-    label={ `Rooms details: ${room.name}` }
+    label={`Rooms details: ${room.name}`}
     top="70%"
     left="60%"
     width="40%"
     height="30%"
     prefix="asc"
-    items={ room.sockets }
+    items={room.sockets}
   />
 )
