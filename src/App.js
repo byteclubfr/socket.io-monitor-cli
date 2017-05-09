@@ -100,18 +100,17 @@ export default class Dashboard extends Component {
       .on('join', ({ id, room }) => {
         const found = this.state.rooms.some(({ name }) => name === room)
         if (!found) {
-          this.setState({
-            rooms: this.state.rooms.concat({ name: room, sockets: [id] }),
-          })
+          this.setState(({ rooms }) => ({
+            rooms: rooms.concat({ name: room, sockets: [id] }),
+          }))
         } else {
-          this.setState({
-            rooms: this.state.rooms.map(r => {
-              if (r.name !== room) {
-                return r
-              }
-              return Object.assign({}, r, { sockets: r.sockets.concat(id) })
+          this.setState(({ rooms }) => ({
+            rooms: rooms.map(r => {
+              return r.name !== room
+                ? r
+                : Object.assign({}, r, { sockets: r.sockets.concat(id) })
             }),
-          })
+          }))
         }
       })
       .on('leave', ({ id, room }) => {
@@ -121,30 +120,30 @@ export default class Dashboard extends Component {
         }
         const newSockets = found.sockets.filter(sid => sid !== id)
         if (newSockets.length === 0) {
-          this.setState({ rooms: this.rooms.filter(r => r.name !== room) })
+          this.setState(({ rooms }) => ({
+            rooms: rooms.filter(r => r.name !== room),
+          }))
         } else {
-          this.setState({
-            rooms: this.rooms.map(r => {
-              if (r.name !== room) {
-                return r
-              }
-              return Object.assign({}, r, { sockets: newSockets })
+          this.setState(({ rooms }) => ({
+            rooms: rooms.map(r => {
+              return r.name !== room
+                ? r
+                : Object.assign({}, r, { sockets: newSockets })
             }),
-          })
+          }))
         }
       })
       .on('leaveAll', ({ id }) =>
-        this.setState({
-          rooms: this.state.rooms
+        this.setState(({ rooms }) => ({
+          rooms: rooms
             .map(r => {
               const newSockets = r.sockets.filter(sid => sid !== id)
-              if (newSockets.length === 0) {
-                return null
-              }
-              return Object.assign({}, r, { sockets: newSockets })
+              return newSockets.length === 0
+                ? null
+                : Object.assign({}, r, { sockets: newSockets })
             })
             .filter(r => r !== null),
-        }),
+        })),
       )
   }
 
@@ -154,27 +153,29 @@ export default class Dashboard extends Component {
         this.setState({ sockets: sockets.map(id => ({ id, label: id })) })
       })
       .on('connect', ({ id }) => {
-        this.setState({
-          sockets: [{ id, label: id }].concat(this.state.sockets),
-        })
+        this.setState(({ sockets }) => ({
+          sockets: [{ id, label: id }].concat(sockets),
+        }))
       })
       .on('disconnect', ({ id }) => {
-        this.setState({ sockets: this.state.sockets.filter(s => s.id !== id) })
+        this.setState(({ sockets }) => ({
+          sockets: sockets.filter(s => s.id !== id),
+        }))
       })
       .on('string', ({ id, string }) => {
-        this.setState({
-          sockets: this.state.sockets.map(
+        this.setState(({ sockets }) => ({
+          sockets: sockets.map(
             s => (s.id === id ? { id, label: `${string} (${id})` } : s),
           ),
-        })
+        }))
       })
   }
 
   addLog(type, info) {
-    this.setState({
-      logLines: [toLogLine(type, info)].concat(this.state.logLines),
-      logs: [Object.assign({ type }, info)].concat(this.state.logs),
-    })
+    this.setState(({ logLines, logs }) => ({
+      logLines: [toLogLine(type, info)].concat(logLines),
+      logs: [Object.assign({ type }, info)].concat(logs),
+    }))
   }
 
   // socket → rooms
@@ -224,9 +225,9 @@ export default class Dashboard extends Component {
           toggles={this.getToggles()}
           onSelect={index => {
             const toggle = Object.keys(this.state.logToggles)[index]
-            this.setState(state => ({
-              logToggles: Object.assign({}, state.logToggles, {
-                [toggle]: !state.logToggles[toggle],
+            this.setState(({ logToggles }) => ({
+              logToggles: Object.assign({}, logToggles, {
+                [toggle]: !logToggles[toggle],
               }),
             }))
           }}
@@ -242,18 +243,18 @@ export default class Dashboard extends Component {
         <Sockets
           sockets={this.state.sockets}
           onSelect={index =>
-            this.setState({
+            this.setState(({ sockets }) => ({
               selected: 'socket',
-              selectedSocket: this.state.sockets[index].id,
-            })}
+              selectedSocket: sockets[index].id,
+            }))}
         />
         <Rooms
           rooms={this.state.rooms}
           onSelect={index =>
-            this.setState({
+            this.setState(({ rooms }) => ({
               selected: 'room',
-              selectedRoom: this.state.rooms[index].id,
-            })}
+              selectedRoom: rooms[index].id,
+            }))}
         />
         {this.getSelectedBox()}
       </element>
