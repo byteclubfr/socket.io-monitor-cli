@@ -23,7 +23,12 @@ const pluralize = (count, label) => `${count} ${label}${count > 1 ? 's' : ''}`
 
 type Room = {
   name: string,
-  sockets: Array<string>, // ids
+  sockets: Array<string>, // only ids
+}
+
+type Socket = {
+  id: string,
+  label: string,
 }
 
 /**
@@ -54,10 +59,10 @@ export default class Dashboard extends Component {
     logs: Array<Object>,
     logLines: Array<string>,
     logToggles: Object,
-    sockets: Array<Object>,
+    sockets: Array<Socket>,
     rooms: Array<Room>,
     selected: ?string,
-    selectedSocket: ?Object,
+    selectedSocket: ?Socket,
     selectedRoom: ?Room,
     selectedLog: ?Object,
   }
@@ -359,7 +364,7 @@ const LogDetails = ({ content }: LogDetailsProps) => (
 const socketToItem = s => `${s.label}`
 
 type SocketsProps = {
-  sockets: Array<Object>,
+  sockets: Array<Socket>,
   onSelect: Function,
 }
 const Sockets = ({ sockets, onSelect }: SocketsProps) => (
@@ -396,13 +401,13 @@ const Rooms = ({ rooms, onSelect }: RoomsProps) => (
 )
 
 type SocketDetailsProps = {
-  socket: Object,
+  socket: Socket,
   rooms: Array<Room>,
 }
 const SocketDetails = ({ socket, rooms }: SocketDetailsProps) => {
-  const label = socket
-    ? socket.label === socket.id ? socket.id : `${socket.label} (${socket.id})`
-    : 'Unselected'
+  const label = socket.label === socket.id
+    ? socket.id
+    : `${socket.label} (${socket.id})`
   return (
     <MyList
       label={`Socket details: ${label}`}
