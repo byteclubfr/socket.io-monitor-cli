@@ -1,3 +1,5 @@
+// @flow
+
 import React, { Component } from 'react'
 import jsome from 'jsome'
 
@@ -16,7 +18,7 @@ jsome.colors = {
   null: 'grey',
 }
 
-const logToLine = (type, info) => `${type} ${Object.values(info)}`
+const logToLine = (type, info) => `${type} ${Object.values(info).toString()}`
 const pluralize = (count, label) => `${count} ${label}${count > 1 ? 's' : ''}`
 
 type Room = {
@@ -48,28 +50,38 @@ export default class Dashboard extends Component {
     },
   }
 
-  constructor(props) {
-    super(props)
-    this.state = {
-      logs: [], // raw js logs
-      logLines: [], // logs stringified on reception
-      logToggles: {
-        init: true,
-        broadcast: true,
-        join: true,
-        leave: true,
-        leaveAll: true,
-        connect: true,
-        disconnect: true,
-        emit: true,
-        recv: true,
-      },
-      sockets: [],
-      rooms: [],
-      selected: null, // current box on the bottom right
-      selectedSocket: null,
-      selectedRoom: null,
-    }
+  state: {
+    logs: Array<Object>,
+    logLines: Array<string>,
+    logToggles: Object,
+    sockets: Array<Object>,
+    rooms: Array<Room>,
+    selected: ?string,
+    selectedSocket: ?Object,
+    selectedRoom: ?Room,
+    selectedLog: ?Object,
+  }
+
+  state = {
+    logs: [], // raw js logs
+    logLines: [], // logs stringified on reception
+    logToggles: {
+      init: true,
+      broadcast: true,
+      join: true,
+      leave: true,
+      leaveAll: true,
+      connect: true,
+      disconnect: true,
+      emit: true,
+      recv: true,
+    },
+    sockets: [],
+    rooms: [],
+    selected: null, // current box on the bottom right
+    selectedSocket: null,
+    selectedRoom: null,
+    selectedLog: null,
   }
 
   componentWillMount() {
@@ -172,7 +184,7 @@ export default class Dashboard extends Component {
       })
   }
 
-  addLog(type, info) {
+  addLog(type: string, info: Object) {
     this.setState(({ logLines, logs }) => ({
       logLines: [logToLine(type, info)].concat(logLines),
       logs: [Object.assign({ type }, info)].concat(logs),
@@ -190,22 +202,21 @@ export default class Dashboard extends Component {
 
   getSelectedBox() {
     switch (this.state.selected) {
-      case 'socket':
-        return (
-          <SocketDetails
-            socket={this.state.sockets.find(
-              s => s.id === this.state.selectedSocket,
-            )}
-            rooms={this.getSelectedRooms()}
-          />
+      case 'socket': {
+        const socket = this.state.sockets.find(
+          s => s.id === this.state.selectedSocket,
         )
+        return !socket
+          ? null
+          : <SocketDetails socket={socket} rooms={this.getSelectedRooms()} />
+      }
 
-      case 'room':
-        return (
-          <RoomDetails
-            room={this.state.rooms.find(r => r.id === this.state.selectedRoom)}
-          />
+      case 'room': {
+        const room = this.state.rooms.find(
+          r => r.name === this.state.selectedRoom,
         )
+        return !room ? null : <RoomDetails room={room} />
+      }
 
       default:
         return null
@@ -240,7 +251,7 @@ export default class Dashboard extends Component {
               selectedLog: getFilteredLogs(state)[index],
             }))}
         />
-        <LogDetails content={this.state.selectedLog} />
+        <LogDetails content={this.state.selectedLog || {}} />
         <Sockets
           sockets={this.state.sockets}
           onSelect={index =>
@@ -254,7 +265,7 @@ export default class Dashboard extends Component {
           onSelect={index =>
             this.setState(({ rooms }) => ({
               selected: 'room',
-              selectedRoom: rooms[index].id,
+              selectedRoom: rooms[index].name,
             }))}
         />
         {this.getSelectedBox()}
@@ -264,10 +275,10 @@ export default class Dashboard extends Component {
 }
 
 type MyListProps = {
-  disabled: boolean,
   items: Array<any>,
-  prefix: string,
-  onSelect: Function,
+  disabled?: boolean,
+  prefix?: string,
+  onSelect?: Function,
 }
 const MyList = (props: MyListProps) => {
   const disabled = props.disabled
