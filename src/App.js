@@ -29,6 +29,7 @@ type Room = {
 type Socket = {
   id: string,
   label: string,
+  rooms: Array<string>, // only names
 }
 
 /**
@@ -135,6 +136,12 @@ export default class Dashboard extends Component {
             ),
           }))
         }
+        // update socket
+        this.setState(({ sockets }) => ({
+          sockets: sockets.map(
+            s => (s.id === id ? { ...s, rooms: s.rooms.concat(room) } : s),
+          ),
+        }))
       })
       .on('leave', ({ id, room }) => {
         const found = this.state.rooms.find(({ name }) => name === room)
@@ -152,8 +159,18 @@ export default class Dashboard extends Component {
             rooms: rooms.map(r => (r.name === room ? { ...r, sockets } : r)),
           }))
         }
+        // update socket
+        this.setState(({ sockets }) => ({
+          sockets: sockets.map(
+            s =>
+              (s.id === id
+                ? { ...s, rooms: s.rooms.filter(r => r !== room) }
+                : s),
+          ),
+        }))
       })
-      .on('leaveAll', ({ id }) =>
+      .on('leaveAll', ({ id }) => {
+        // update rooms
         this.setState(({ rooms }) => ({
           rooms: rooms
             .map(r => {
@@ -161,18 +178,28 @@ export default class Dashboard extends Component {
               return sockets.length === 0 ? null : { ...r, sockets }
             })
             .filter(r => r !== null),
-        })),
-      )
+        }))
+        // update socket
+        this.setState(({ sockets }) => ({
+          sockets: sockets.map(s => (s.id === id ? { ...s, rooms: [] } : s)),
+        }))
+      })
   }
 
   watchSockets() {
     this.props.client
-      .on('init', ({ sockets }) => {
-        this.setState({ sockets: sockets.map(id => ({ id, label: id })) })
+      .on('init', ({ sockets, rooms }) => {
+        this.setState({
+          sockets: sockets.map(id => ({
+            id,
+            label: id,
+            rooms: rooms.filter(r => r.sockets.includes(id)).map(r => r.name),
+          })),
+        })
       })
       .on('connect', ({ id }) => {
         this.setState(({ sockets }) => ({
-          sockets: [{ id, label: id }].concat(sockets),
+          sockets: [{ id, label: id, rooms: [] }].concat(sockets),
         }))
       })
       .on('disconnect', ({ id }) => {
@@ -183,7 +210,7 @@ export default class Dashboard extends Component {
       .on('string', ({ id, string }) => {
         this.setState(({ sockets }) => ({
           sockets: sockets.map(
-            s => (s.id === id ? { id, label: `${string} (${id})` } : s),
+            s => (s.id === id ? { ...s, label: `${id} (${string})` } : s),
           ),
         }))
       })
@@ -196,24 +223,13 @@ export default class Dashboard extends Component {
     }))
   }
 
-  // socket → rooms
-  getSelectedRooms() {
-    return !this.state.selectedSocket
-      ? []
-      : this.state.rooms
-          .filter(r => r.sockets.includes(this.state.selectedSocket))
-          .map(r => r.name)
-  }
-
   getSelectedBox() {
     switch (this.state.selected) {
       case 'socket': {
         const socket = this.state.sockets.find(
           s => s.id === this.state.selectedSocket,
         )
-        return !socket
-          ? null
-          : <SocketDetails socket={socket} rooms={this.getSelectedRooms()} />
+        return !socket ? null : <SocketDetails socket={socket} />
       }
 
       case 'room': {
@@ -361,7 +377,8 @@ const LogDetails = ({ content }: LogDetailsProps) => (
   </box>
 )
 
-const socketToItem = s => `${s.label}`
+const socketToItem = (s: Socket) =>
+  `${s.label} (${pluralize(s.rooms.length, 'room')})`
 
 type SocketsProps = {
   sockets: Array<Socket>,
@@ -402,24 +419,18 @@ const Rooms = ({ rooms, onSelect }: RoomsProps) => (
 
 type SocketDetailsProps = {
   socket: Socket,
-  rooms: Array<Room>,
 }
-const SocketDetails = ({ socket, rooms }: SocketDetailsProps) => {
-  const label = socket.label === socket.id
-    ? socket.id
-    : `${socket.label} (${socket.id})`
-  return (
-    <MyList
-      label={`Socket details: ${label}`}
-      top="70%"
-      left="60%"
-      width="40%"
-      height="30%"
-      prefix="asc"
-      items={socket ? rooms : ['Select a socket to see its rooms']}
-    />
-  )
-}
+const SocketDetails = ({ socket }: SocketDetailsProps) => (
+  <MyList
+    label={`Socket details: ${socket.label}`}
+    top="70%"
+    left="60%"
+    width="40%"
+    height="30%"
+    prefix="asc"
+    items={socket.rooms}
+  />
+)
 
 type RoomDetailsProps = {
   room: Room,
