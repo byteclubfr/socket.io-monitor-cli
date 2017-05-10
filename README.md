@@ -28,3 +28,17 @@ Options:
                   interactively asked for one)            [string] [default: ""]
   --help          Display help                                         [boolean]
 ```
+
+## Development
+
+Using `console.log` in the source will mix your debug output with the rendered app.
+
+So, prefer `console.error` and redirect `stderr`:
+
+```sh
+socket.io-monitor 2> debug.log
+```
+
+```sh
+tail -f debug.log
+```
