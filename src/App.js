@@ -238,6 +238,7 @@ export default class Dashboard extends Component {
         />
         <Logs
           lines={getFilteredLogLines(this.state)}
+          linesCount={this.state.logLines.length}
           onSelect={index =>
             this.setState(state => ({
               selectedLog: getFilteredLogs(state)[index],
@@ -303,11 +304,12 @@ const MyList = (props: MyListProps) => {
 
 type LogsProps = {
   lines: Array<string>,
+  linesCount: number,
   onSelect: Function,
 }
-const Logs = ({ lines, onSelect }: LogsProps) => (
+const Logs = ({ lines, linesCount, onSelect }: LogsProps) => (
   <MyList
-    label="Log"
+    label={`Log (${lines.length}/${linesCount})`}
     width="50%"
     height="50%"
     left="10%"
