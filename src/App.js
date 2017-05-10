@@ -19,7 +19,11 @@ jsome.colors = {
 }
 
 const logToLine = (type, info) => `${type} ${Object.values(info).toString()}`
+
 const pluralize = (count, label) => `${count} ${label}${count > 1 ? 's' : ''}`
+
+// remove year and zone
+const humanize = ms => new Date(ms).toUTCString().slice(5)
 
 type Room = {
   name: string,
@@ -28,6 +32,7 @@ type Room = {
 
 type Socket = {
   id: string,
+  connectedAt: number,
   label: string,
   rooms: Array<string>, // only names
 }
@@ -190,10 +195,10 @@ export default class Dashboard extends Component {
     this.props.client
       .on('init', ({ sockets, rooms }) => {
         this.setState({
-          sockets: sockets.map(id => ({
-            id,
-            label: id,
-            rooms: rooms.filter(r => r.sockets.includes(id)).map(r => r.name),
+          sockets: sockets.map(s => ({
+            ...s,
+            label: s.id,
+            rooms: rooms.filter(r => r.sockets.includes(s.id)).map(r => r.name),
           })),
         })
       })
@@ -378,7 +383,7 @@ const LogDetails = ({ content }: LogDetailsProps) => (
 )
 
 const socketToItem = (s: Socket) =>
-  `${s.label} (${pluralize(s.rooms.length, 'room')})`
+  `${s.label} ${humanize(s.connectedAt)} (${pluralize(s.rooms.length, 'room')})`
 
 type SocketsProps = {
   sockets: Array<Socket>,
@@ -391,7 +396,6 @@ const Sockets = ({ sockets, onSelect }: SocketsProps) => (
     width="40%"
     height="35%"
     focused={true}
-    prefix="asc"
     items={sockets.map(socketToItem)}
     onSelect={onSelect}
   />
@@ -411,7 +415,6 @@ const Rooms = ({ rooms, onSelect }: RoomsProps) => (
     left="60%"
     width="40%"
     height="35%"
-    prefix="asc"
     items={rooms.map(roomToItem)}
     onSelect={onSelect}
   />
@@ -420,29 +423,46 @@ const Rooms = ({ rooms, onSelect }: RoomsProps) => (
 type SocketDetailsProps = {
   socket: Socket,
 }
-const SocketDetails = ({ socket }: SocketDetailsProps) => (
-  <MyList
-    label={`Socket details: ${socket.label}`}
-    top="70%"
-    left="60%"
-    width="40%"
-    height="30%"
-    prefix="asc"
-    items={socket.rooms}
-  />
-)
+const SocketDetails = ({ socket }: SocketDetailsProps) => {
+  const items = [
+    `id: ${socket.id}`,
+    `label: ${socket.label}`,
+    `connectedAt: ${humanize(socket.connectedAt)}`,
+    '',
+    `${pluralize(socket.rooms.length, 'room')}:`,
+    ...socket.rooms
+  ]
+  return (
+    <MyList
+      label="Socket details"
+      top="70%"
+      left="60%"
+      width="40%"
+      height="30%"
+      items={items}
+      disabled
+    />
+  )
+}
 
 type RoomDetailsProps = {
   room: Room,
 }
-const RoomDetails = ({ room }: RoomDetailsProps) => (
+const RoomDetails = ({ room }: RoomDetailsProps) => {
+  const items = [
+    `name: ${room.name}`,
+    '',
+    `${pluralize(room.sockets.length, 'socket')}:`,
+    ...room.sockets
+  ]
+  return (
   <MyList
-    label={`Rooms details: ${room.name}`}
+    label="Room details"
     top="70%"
     left="60%"
     width="40%"
     height="30%"
-    prefix="asc"
-    items={room.sockets}
-  />
-)
+    items={items}
+    disabled
+  />)
+}
