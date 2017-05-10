@@ -16,11 +16,12 @@ jsome.colors = {
   null: 'grey',
 }
 
-const toLogLine = (type, info) => `${type} ${Object.values(info)}`
+const logToLine = (type, info) => `${type} ${Object.values(info)}`
+const pluralize = (count, label) => `${count} ${label}${count > 1 ? 's' : ''}`
 
 type Room = {
   name: string,
-  sockets: Array<Object>,
+  sockets: Array<string>, // ids
 }
 
 /**
@@ -104,36 +105,34 @@ export default class Dashboard extends Component {
       .on('join', ({ id, room }) => {
         const found = this.state.rooms.some(({ name }) => name === room)
         if (!found) {
+          // new room
           this.setState(({ rooms }) => ({
             rooms: rooms.concat({ name: room, sockets: [id] }),
           }))
         } else {
+          // update room's sockets
           this.setState(({ rooms }) => ({
-            rooms: rooms.map(r => {
-              return r.name !== room
-                ? r
-                : Object.assign({}, r, { sockets: r.sockets.concat(id) })
-            }),
+            rooms: rooms.map(
+              r =>
+                (r.name === room ? { ...r, sockets: r.sockets.concat(id) } : r),
+            ),
           }))
         }
       })
       .on('leave', ({ id, room }) => {
         const found = this.state.rooms.find(({ name }) => name === room)
-        if (!found) {
-          return
-        }
-        const newSockets = found.sockets.filter(sid => sid !== id)
-        if (newSockets.length === 0) {
+        if (!found) return
+
+        const sockets = found.sockets.filter(sid => sid !== id)
+        if (sockets.length === 0) {
+          // delete room
           this.setState(({ rooms }) => ({
             rooms: rooms.filter(r => r.name !== room),
           }))
         } else {
+          // update room's sockets
           this.setState(({ rooms }) => ({
-            rooms: rooms.map(r => {
-              return r.name !== room
-                ? r
-                : Object.assign({}, r, { sockets: newSockets })
-            }),
+            rooms: rooms.map(r => (r.name === room ? { ...r, sockets } : r)),
           }))
         }
       })
@@ -141,10 +140,8 @@ export default class Dashboard extends Component {
         this.setState(({ rooms }) => ({
           rooms: rooms
             .map(r => {
-              const newSockets = r.sockets.filter(sid => sid !== id)
-              return newSockets.length === 0
-                ? null
-                : Object.assign({}, r, { sockets: newSockets })
+              const sockets = r.sockets.filter(sid => sid !== id)
+              return sockets.length === 0 ? null : { ...r, sockets }
             })
             .filter(r => r !== null),
         })),
@@ -177,19 +174,18 @@ export default class Dashboard extends Component {
 
   addLog(type, info) {
     this.setState(({ logLines, logs }) => ({
-      logLines: [toLogLine(type, info)].concat(logLines),
+      logLines: [logToLine(type, info)].concat(logLines),
       logs: [Object.assign({ type }, info)].concat(logs),
     }))
   }
 
   // socket → rooms
   getSelectedRooms() {
-    if (!this.state.selectedSocket) {
-      return []
-    }
-    return this.state.rooms
-      .filter(r => r.sockets.includes(this.state.selectedSocket))
-      .map(r => r.name)
+    return !this.state.selectedSocket
+      ? []
+      : this.state.rooms
+          .filter(r => r.sockets.includes(this.state.selectedSocket))
+          .map(r => r.name)
   }
 
   getSelectedBox() {
@@ -276,7 +272,7 @@ type MyListProps = {
 const MyList = (props: MyListProps) => {
   const disabled = props.disabled
 
-  const listProps = Object.assign({}, props)
+  const listProps = { ...props }
   delete listProps.disabled
   delete listProps.prefix
   delete listProps.onSelect
@@ -349,6 +345,8 @@ const LogDetails = ({ content }: LogDetailsProps) => (
   </box>
 )
 
+const socketToItem = s => `${s.label}`
+
 type SocketsProps = {
   sockets: Array<Object>,
   onSelect: Function,
@@ -361,10 +359,13 @@ const Sockets = ({ sockets, onSelect }: SocketsProps) => (
     height="35%"
     focused={true}
     prefix="asc"
-    items={sockets.map(s => s.label)}
+    items={sockets.map(socketToItem)}
     onSelect={onSelect}
   />
 )
+
+const roomToItem = (r: Room) =>
+  `${r.name} (${pluralize(r.sockets.length, 'socket')})`
 
 type RoomsProps = {
   rooms: Array<Room>,
@@ -378,7 +379,7 @@ const Rooms = ({ rooms, onSelect }: RoomsProps) => (
     width="40%"
     height="35%"
     prefix="asc"
-    items={rooms.map(r => `${r.name} (${r.sockets.length})`)}
+    items={rooms.map(roomToItem)}
     onSelect={onSelect}
   />
 )
