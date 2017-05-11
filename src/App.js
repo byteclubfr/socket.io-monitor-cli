@@ -4,6 +4,7 @@ import React, { Component } from 'react'
 import jsome from 'jsome'
 
 import { getFilteredLogs, getFilteredLogLines } from './selectors'
+import { pluralize, humanize, leftPad, partial } from './utils'
 
 jsome.colors = {
   attr: ['bold', 'black'],
@@ -20,13 +21,6 @@ jsome.colors = {
 
 const logToLine = (type, info) => `${type} ${Object.values(info).toString()}`
 
-const pluralize = (count, label) => `${count} ${label}${count > 1 ? 's' : ''}`
-
-// remove year and zone
-const humanize = ms => new Date(ms).toUTCString().slice(5)
-
-const leftPad = (index: string, total: number) =>
-  Array(total - index.length).fill('0').join('') + index
 
 type Room = {
   name: string,
@@ -71,8 +65,8 @@ export default class Dashboard extends Component {
     sockets: Array<Socket>,
     rooms: Array<Room>,
     selected: ?string,
-    selectedSocket: ?Socket,
-    selectedRoom: ?Room,
+    selectedSocket: ?string, // id
+    selectedRoom: ?string, // name
     selectedLog: ?Object,
   }
 
@@ -285,18 +279,22 @@ export default class Dashboard extends Component {
         <LogDetails content={this.state.selectedLog || {}} />
         <Sockets
           sockets={this.state.sockets}
+          selected={this.state.selectedSocket}
           onSelect={index =>
             this.setState(({ sockets }) => ({
               selected: 'socket',
               selectedSocket: sockets[index].id,
+              selectedRoom: null,
             }))}
         />
         <Rooms
           rooms={this.state.rooms}
+          selected={this.state.selectedRoom}
           onSelect={index =>
             this.setState(({ rooms }) => ({
               selected: 'room',
               selectedRoom: rooms[index].name,
+              selectedSocket: null,
             }))}
         />
         {this.getSelectedBox()}
@@ -388,40 +386,48 @@ const LogDetails = ({ content }: LogDetailsProps) => (
   </box>
 )
 
-const socketToItem = (s: Socket) =>
-  `${s.label} ${humanize(s.connectedAt)} (${pluralize(s.rooms.length, 'room')})`
+const socketToItem = (selected: ?string, s: Socket) => {
+  const check = selected === s.id ? '✔' : ' '
+  const rooms = pluralize(s.rooms.length, 'room')
+  return `${check} ${s.label} ${humanize(s.connectedAt)} (${rooms})`
+}
 
 type SocketsProps = {
   sockets: Array<Socket>,
+  selected: ?string,
   onSelect: Function,
 }
-const Sockets = ({ sockets, onSelect }: SocketsProps) => (
+const Sockets = ({ sockets, selected, onSelect }: SocketsProps) => (
   <MyList
     label={`Sockets (${sockets.length})`}
     left="60%"
     width="40%"
     height="35%"
     focused={true}
-    items={sockets.map(socketToItem)}
+    items={sockets.map(partial(socketToItem, selected))}
     onSelect={onSelect}
   />
 )
 
-const roomToItem = (r: Room) =>
-  `${r.name} (${pluralize(r.sockets.length, 'socket')})`
+const roomToItem = (selected: ?string, r: Room) => {
+  const check = selected === r.name ? '✔' : ' '
+  const sockets = pluralize(r.sockets.length, 'socket')
+  return `${check} ${r.name} (${sockets})`
+}
 
 type RoomsProps = {
   rooms: Array<Room>,
+  selected: ?string,
   onSelect: Function,
 }
-const Rooms = ({ rooms, onSelect }: RoomsProps) => (
+const Rooms = ({ rooms, selected, onSelect }: RoomsProps) => (
   <MyList
     label={`Rooms (${rooms.length})`}
     top="35%"
     left="60%"
     width="40%"
     height="35%"
-    items={rooms.map(roomToItem)}
+    items={rooms.map(partial(roomToItem, selected))}
     onSelect={onSelect}
   />
 )
