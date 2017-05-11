@@ -204,7 +204,9 @@ export default class Dashboard extends Component {
       })
       .on('connect', ({ id }) => {
         this.setState(({ sockets }) => ({
-          sockets: [{ id, label: id, rooms: [] }].concat(sockets),
+          sockets: [
+            { id, label: id, connectedAt: Number(new Date()), rooms: [] },
+          ].concat(sockets),
         }))
       })
       .on('disconnect', ({ id }) => {
@@ -430,7 +432,7 @@ const SocketDetails = ({ socket }: SocketDetailsProps) => {
     `connectedAt: ${humanize(socket.connectedAt)}`,
     '',
     `${pluralize(socket.rooms.length, 'room')}:`,
-    ...socket.rooms
+    ...socket.rooms,
   ]
   return (
     <MyList
@@ -453,16 +455,17 @@ const RoomDetails = ({ room }: RoomDetailsProps) => {
     `name: ${room.name}`,
     '',
     `${pluralize(room.sockets.length, 'socket')}:`,
-    ...room.sockets
+    ...room.sockets,
   ]
   return (
-  <MyList
-    label="Room details"
-    top="70%"
-    left="60%"
-    width="40%"
-    height="30%"
-    items={items}
-    disabled
-  />)
+    <MyList
+      label="Room details"
+      top="70%"
+      left="60%"
+      width="40%"
+      height="30%"
+      items={items}
+      disabled
+    />
+  )
 }
