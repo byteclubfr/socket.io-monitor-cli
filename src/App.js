@@ -21,7 +21,6 @@ jsome.colors = {
 
 const logToLine = (type, info) => `${type} ${Object.values(info).toString()}`
 
-
 type Room = {
   name: string,
   sockets: Array<string>, // only ids
@@ -254,6 +253,22 @@ export default class Dashboard extends Component {
     )
   }
 
+  toggleSocket = (index: number) => {
+    this.setState(({ sockets, selected }) => ({
+      selected: selected === 'socket' ? null : 'socket',
+      selectedSocket: selected === 'socket' ? null : sockets[index].id,
+      selectedRoom: null,
+    }))
+  }
+
+  toggleRoom = (index: number) => {
+    this.setState(({ rooms, selected }) => ({
+      selected: selected === 'room' ? null : 'room',
+      selectedRoom: selected === 'room' ? null : rooms[index].name,
+      selectedSocket: null,
+    }))
+  }
+
   render() {
     return (
       <element>
@@ -280,22 +295,12 @@ export default class Dashboard extends Component {
         <Sockets
           sockets={this.state.sockets}
           selected={this.state.selectedSocket}
-          onSelect={index =>
-            this.setState(({ sockets }) => ({
-              selected: 'socket',
-              selectedSocket: sockets[index].id,
-              selectedRoom: null,
-            }))}
+          onSelect={this.toggleSocket}
         />
         <Rooms
           rooms={this.state.rooms}
           selected={this.state.selectedRoom}
-          onSelect={index =>
-            this.setState(({ rooms }) => ({
-              selected: 'room',
-              selectedRoom: rooms[index].name,
-              selectedSocket: null,
-            }))}
+          onSelect={this.toggleRoom}
         />
         {this.getSelectedBox()}
       </element>
