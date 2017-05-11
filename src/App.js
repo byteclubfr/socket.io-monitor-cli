@@ -3,7 +3,7 @@
 import React, { Component } from 'react'
 import jsome from 'jsome'
 
-import { getFilteredLogs, getFilteredLogLines } from './selectors'
+import { getFilteredLogs } from './selectors'
 import { pluralize, humanize, leftPad, partial } from './utils'
 
 jsome.colors = {
@@ -19,7 +19,8 @@ jsome.colors = {
   null: 'grey',
 }
 
-const logToLine = (type, info) => `${type} ${Object.values(info).toString()}`
+const logToLine = (type, info) =>
+  `${type} ${Object.values(info).toString().replace(/,\[object Object\]/g, '')}`
 
 type Room = {
   name: string,
@@ -59,7 +60,6 @@ export default class Dashboard extends Component {
 
   state: {
     logs: Array<Object>,
-    logLines: Array<string>,
     logToggles: Object,
     sockets: Array<Socket>,
     rooms: Array<Room>,
@@ -71,7 +71,6 @@ export default class Dashboard extends Component {
 
   state = {
     logs: [], // raw js logs
-    logLines: [], // logs stringified on reception
     logToggles: {
       init: true,
       broadcast: true,
@@ -220,9 +219,10 @@ export default class Dashboard extends Component {
   }
 
   addLog(type: string, info: Object) {
-    this.setState(({ logLines, logs }) => ({
-      logLines: [logToLine(type, info)].concat(logLines),
-      logs: [Object.assign({ type }, info)].concat(logs),
+    this.setState(({ logs }) => ({
+      logs: [Object.assign({ type, line: logToLine(type, info) }, info)].concat(
+        logs,
+      ),
     }))
   }
 
@@ -284,8 +284,8 @@ export default class Dashboard extends Component {
           }}
         />
         <Logs
-          lines={getFilteredLogLines(this.state)}
-          linesCount={this.state.logLines.length}
+          logs={getFilteredLogs(this.state)}
+          logsCount={this.state.logs.length}
           onSelect={index =>
             this.setState(state => ({
               selectedLog: getFilteredLogs(state)[index],
@@ -345,18 +345,18 @@ const MyList = (props: MyListProps) => {
 }
 
 type LogsProps = {
-  lines: Array<string>,
-  linesCount: number,
+  logs: Array<Object>,
+  logsCount: number,
   onSelect: Function,
 }
-const Logs = ({ lines, linesCount, onSelect }: LogsProps) => (
+const Logs = ({ logs, logsCount, onSelect }: LogsProps) => (
   <MyList
-    label={`Log (${lines.length}/${linesCount})`}
+    label={`Log (${logs.length}/${logsCount})`}
     width="50%"
     height="50%"
     left="10%"
     prefix="desc"
-    items={lines}
+    items={logs.map(l => l.line)}
     onSelect={onSelect}
   />
 )
@@ -378,18 +378,23 @@ const LogToggles = ({ toggles, onSelect }: LogTogglesProps) => (
 type LogDetailsProps = {
   content: Object,
 }
-const LogDetails = ({ content }: LogDetailsProps) => (
-  <box
-    class={styles.bordered}
-    label="Log details"
-    width="60%"
-    top="50%"
-    height="50%"
-    mouse={true}
-    scrollable={true}>
-    {content !== undefined ? jsome.getColoredString(content) : ''}
-  </box>
-)
+const LogDetails = ({ content }: LogDetailsProps) => {
+  const json = { ...content }
+  delete json.line
+
+  return (
+    <box
+      class={styles.bordered}
+      label="Log details"
+      width="60%"
+      top="50%"
+      height="50%"
+      mouse={true}
+      scrollable={true}>
+      {jsome.getColoredString(json)}
+    </box>
+  )
+}
 
 const socketToItem = (selected: ?string, s: Socket) => {
   const check = selected === s.id ? '✔' : ' '
