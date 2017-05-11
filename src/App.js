@@ -25,6 +25,9 @@ const pluralize = (count, label) => `${count} ${label}${count > 1 ? 's' : ''}`
 // remove year and zone
 const humanize = ms => new Date(ms).toUTCString().slice(5)
 
+const leftPad = (index: string, total: number) =>
+  Array(total - index.length).fill('0').join('') + index
+
 type Room = {
   name: string,
   sockets: Array<string>, // only ids
@@ -318,7 +321,8 @@ const MyList = (props: MyListProps) => {
 
   if (props.prefix) {
     listProps.items = props.items.map((s, i) => {
-      const prefix = props.prefix === 'desc' ? props.items.length - i : i + 1
+      let prefix = props.prefix === 'desc' ? props.items.length - i : i + 1
+      prefix = leftPad(String(prefix), String(props.items.length).length)
       return `${prefix}. ${s}`
     })
   }
