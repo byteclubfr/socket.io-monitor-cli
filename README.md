@@ -31,7 +31,9 @@ Options:
 
 ## Development
 
-Using `console.log` in the source will mix your debug output with the rendered app.
+The terminal rendering is made with [react-blessed](https://github.com/Yomguithereal/react-blessed).
+
+Therefore, using `console.log` in the source will mix your debug output with the rendered app.
 
 So, prefer `console.error` and redirect `stderr`:
 
@@ -42,3 +44,4 @@ socket.io-monitor 2> debug.log
 ```sh
 tail -f debug.log
 ```
+
