@@ -6,44 +6,46 @@ const { prompt } = require('inquirer')
 const run = require('../')
 const getScreen = require('../dist/screen').default
 
-
 const { port, host, password } = require('yargs')
   .usage('$0 [--port port] [--host addr] [--password pwd]')
   .option('host', {
     alias: 'h',
     type: 'string',
     default: 'localhost',
-    description: 'Server address'
+    description: 'Server address',
   })
   .option('port', {
     alias: 'p',
     type: 'number',
     default: 9042,
-    description: 'Server port'
+    description: 'Server port',
   })
   .option('password', {
     alias: 'a',
     type: 'string',
     default: '',
-    description: 'Password (if not provided but server requires one, you will be interactively asked for one)'
+    description:
+      'Password (if not provided but server requires one, you will be interactively asked for one)',
   })
-  .help()
-  .argv
+  .help().argv
 
 run({ port, host, password })
-.catch(err => {
-  if (err.message === 'PASSWORD_REQUIRED') {
-    return prompt({ type: 'password', message: 'Password required', name: 'password' })
-    .then(({ password }) => run({ port, host, password }))
-  } else {
-    throw err
-  }
-})
-.catch(err => {
-  const screen = getScreen()
-  screen.onceDestroyed(() => {
-    console.error(process.env.DEBUG ? err.stack : err.message)
-    process.exit(1)
+  .catch(err => {
+    if (err.message === 'PASSWORD_REQUIRED') {
+      return prompt({
+        type: 'password',
+        message: 'Password required',
+        name: 'password',
+      }).then(({ password }) => run({ port, host, password }))
+    } else {
+      throw err
+    }
   })
-  screen.destroy()
-})
+  .catch(err => {
+    const screen = getScreen()
+    screen.onceDestroyed(() => {
+      console.error(process.env.DEBUG ? err.stack : err.message)
+      process.exit(1)
+    })
+    screen.destroy()
+  })

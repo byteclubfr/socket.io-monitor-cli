@@ -35,13 +35,13 @@
   "homepage": "https://github.com/byteclubfr/socket.io-monitor-cli#readme",
   "dependencies": {
     "blessed": "^0.1.81",
-    "inquirer": "^3.0.6",
+    "inquirer": "^3.2.0",
     "jsome": "^2.3.26",
     "react": "^0.14.8",
     "react-blessed": "^0.1.8",
     "reselect": "^3.0.0",
-    "socket.io-monitor": "^1.3.0",
-    "yargs": "^8.0.1"
+    "socket.io-monitor": "^2.0.1",
+    "yargs": "^8.0.2"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",

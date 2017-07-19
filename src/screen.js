@@ -13,7 +13,7 @@ const getScreen = () => {
   })
 
   // Adding a way to quit the program
-  screen.key(['escape', 'q', 'C-c'], (ch, key) => {
+  screen.key(['escape', 'q', 'C-c'], () => {
     return process.exit(0)
   })
 
