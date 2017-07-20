@@ -22,6 +22,12 @@ jsome.colors = {
 const logToLine = (type, info) =>
   `${type} ${Object.values(info).toString().replace(/,\[object Object\]/g, '')}`
 
+type Log = {
+  type: string,
+  line: string,
+  info: Object,
+}
+
 type Room = {
   name: string,
   sockets: Array<string>, // only ids
@@ -59,14 +65,14 @@ export default class Dashboard extends Component {
   }
 
   state: {
-    logs: Array<Object>,
+    logs: Array<Log>,
     logToggles: Object,
     sockets: Array<Socket>,
     rooms: Array<Room>,
-    selected: ?string,
+    selected: ?('room' | 'socket'),
     selectedSocket: ?string, // id
     selectedRoom: ?string, // name
-    selectedLog: ?Object,
+    selectedLog: ?Log,
   }
 
   state = {
@@ -105,7 +111,6 @@ export default class Dashboard extends Component {
         this.addLog('broadcast', { name, args, rooms, flags }),
       )
       .on('join', ({ id, rooms }) => this.addLog('join', { id, rooms }))
-      .on('join', ({ id, rooms }) => console.error('join', { id, rooms }))
       .on('leave', ({ id, room }) => this.addLog('leave', { id, room }))
       .on('leaveAll', ({ id }) => this.addLog('leaveAll', { id }))
       .on('connect', ({ id }) => this.addLog('connect', { id }))
@@ -287,6 +292,7 @@ export default class Dashboard extends Component {
         <Logs
           logs={getFilteredLogs(this.state)}
           logsCount={this.state.logs.length}
+          filteredBy={this.state.selected}
           onSelect={index =>
             this.setState(state => ({
               selectedLog: getFilteredLogs(state)[index],
@@ -316,7 +322,7 @@ type MyListProps = {
   onSelect?: Function,
 }
 const MyList = (props: MyListProps) => {
-  const disabled = props.disabled
+  const { disabled } = props
 
   const listProps = { ...props }
   delete listProps.disabled
@@ -332,8 +338,9 @@ const MyList = (props: MyListProps) => {
   }
 
   // Reverse dumb arguments in onSelect
-  if (props.onSelect) {
-    listProps.onSelect = (box, index) => props.onSelect(index, box)
+  const { onSelect } = props
+  if (onSelect) {
+    listProps.onSelect = (box, index) => onSelect(index, box)
   }
 
   // UI
@@ -346,13 +353,16 @@ const MyList = (props: MyListProps) => {
 }
 
 type LogsProps = {
+  filteredBy: ?('room' | 'socket'),
   logs: Array<Object>,
   logsCount: number,
   onSelect: Function,
 }
-const Logs = ({ logs, logsCount, onSelect }: LogsProps) =>
+const Logs = ({ filteredBy, logs, logsCount, onSelect }: LogsProps) =>
   <MyList
-    label={`Log (${logs.length}/${logsCount})`}
+    label={`Logs (${logs.length}/${logsCount})${filteredBy
+      ? ' filtered by ' + filteredBy
+      : ''}`}
     width="50%"
     height="50%"
     left="10%"
