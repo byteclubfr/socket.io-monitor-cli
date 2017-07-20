@@ -61,6 +61,8 @@ export default class Dashboard extends Component {
   props: {
     client: {
       on: Function,
+      host: string,
+      port: number,
     },
   }
 
@@ -310,6 +312,7 @@ export default class Dashboard extends Component {
           onSelect={this.toggleRoom}
         />
         {this.getSelectedBox()}
+        <Status host={this.props.client.host} port={this.props.client.port} />
       </element>
     )
   }
@@ -490,9 +493,21 @@ const RoomDetails = ({ room }: RoomDetailsProps) => {
       top="70%"
       left="60%"
       width="40%"
-      height="30%"
+      height="25%"
       items={items}
       disabled
     />
+  )
+}
+
+type StatusProps ={
+	host: string,
+	port: number,
+}
+const Status = ({ host, port }: StatusProps) => {
+  return (
+    <element left="60%" width="40%" height="5%" top="95%">
+      {`Connected on ${host}:${port}`}
+    </element>
   )
 }
