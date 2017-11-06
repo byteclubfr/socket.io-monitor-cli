@@ -41,7 +41,7 @@
     "react-blessed": "^0.1.8",
     "reselect": "^3.0.0",
     "socket.io-monitor": "^2.0.1",
-    "yargs": "^8.0.2"
+    "yargs": "^10.0.3"
   },
   "devDependencies": {
     "babel-cli": "^6.24.1",
